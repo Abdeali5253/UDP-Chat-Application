@@ -1,0 +1,2 @@
+PACKET_SIZE = 1024 # it was 1024 i guess
+TIMEOUT = 1000000

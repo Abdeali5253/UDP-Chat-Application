@@ -1,0 +1,91 @@
+Logo	Submit a request Sign in
+Enthought Knowledge Base  Enthought Deployment Manager (EDM)  Using EDM with Visual Studio Code (VS Code)	
+Search
+Windows error: "activate.ps1 cannot be loaded because running scripts is disabled ... UnauthorizedAccess"
+Avatar	Jonathan March
+October 26, 2021 18:55
+Follow
+Observed Error
+Brief Discussion
+This error message does not usually indicate a problem with the system and will usually not block your use of Python in VS Code (see "Option 4 - Change nothing", below.) However, it can make your use more awkward, and be distracting, making it harder to recognize if a problem does occur. Therefore we recommend that you eliminate the error, following one of the solutions given. 
+Prerequisites
+Before trying to eliminate this error, we recommend that you check that you have told VS Code to select your desired Python environment / interpreter. This will usually be (Enthought) Python 3.6. This is shown at the far left of the VS Code bottom status bar. See "Activate an Enthought Python environment" and "Select a Python Interpreter" .
+Be careful not to use the "Python" Terminal window for anything other than automatically showing the output of the Python "Run" button. In particular, do not run the "edm shell" command there. Instead, if you want a Terminal window to run ipython, or open jupyter notebook, or experiment at the command line, open a different Terminal in VS Code. You can switch back and forth between multiple VS Code Terminals. See "The VS Code Terminal panel" .
+A little more explanation of the error
+It's ok to skip this section if you want.
+
+The following default settings result in this error:
+
+By default, as a convenience, Microsoft's VS Code Python extension automatically activates your selected Python environment whenever you open a new Terminal window in VS Code. [Can be changed with Option 3 below.]
+By default, because PowerShell is more powerful and secure than Command Prompt, new VS Code Terminals run PowerShell, not Command Prompt. [Can be changed with Option 1 below.]
+Therefore by default, whenever you open a new Terminal window in VS Code, the Python extension tries to execute a PowerShell script to activate your selected Python environment..
+But by default, for security, PowerShell blocks the execution of all scripts except in elevated windows. [Can be changed with Option 2 below.]
+So the activate.ps1 script can't run and you get this error message.
+Solutions
+Any one of options 1-3 should eliminate the error message. Each of them only needs to be done once, not every time you start up.
+
+Option 1 - Select Command Prompt as the default terminal shell in VS Code
+This is usually the simplest solution, and is recommended unless your employer prohibits or strongly discourages using Command Prompt (cmd.exe). 
+
+From the VS Code View menu, open the Command Palette.
+Type "default shell" (without the quotes) in the Command Palette's search bar.
+Select the command "Terminal: Select Default Profile".
+Select "Command Prompt".
+If you have any Terminals already open in VS Code (you probably do), close them all by clicking on the Trash icon at the top of each Terminal.
+From the VS Code Terminal menu, create a New Terminal.
+This newly created VS Code Terminal will be using Command Prompt (similar to what you would see if you opened a Command Prompt from the Windows Start Menu.)
+If you have already selected a Python environment for VS Code (as recommended above in "Prerequisites") then the name of that environment should be shown at the beginning of each Windows command prompt in VS Code, like this:
+(python-class)C:\Users\yourname\
+Option 2 - Relax the PowerShell execution policy
+By default, Windows does not permit you to run PowerShell scripts unless you have opened PowerShell with elevated permissions (explicitly "open as administrator.") This protects beginners from accidentally running inappropriate scripts. However if you are comfortable using PowerShell carefully, and prefer to use it, rather than Command Prompt, in VS Code Terminals, then you may remove this restriction if your IT does not prevent you.
+
+From the Windows Start Menu, open a PowerShell window.
+Execute the following command in that window:
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted
+You will be asked the following question:
+Execution Policy Change
+The execution policy helps protect you from scripts that you do not trust. Changing the execution policy might expose you to the security risks described in the about_Execution_Policies help topic at https:/go.microsoft.com/fwlink/?LinkID=135170. 
+Do you want to change the execution policy?
+[Y] Yes [A] Yes to All [N] No [L] No to All [S] Suspend [?] Help (default is "N"):
+
+Respond "Y".
+Option 3 - Disable automatic activation of Python environments
+If you want to use PowerShell in VS Code, but don't want to relax the execution policy, then you can eliminate the automation which triggers this error. 
+From the VS Code File menu, open Preferences, then Settings.
+Type "python terminal activate" (without the quotes) in the Settings search bar.
+Disable (un-check) the setting "Python > Terminal: Activate Environment"
+The (small) disadvantage to this option is that you will then need to explicitly manually activate Python in any terminal window where you wish to  use it (for example to start ipython or jupyter notebook or run a Python script from the command line). To activate an Enthought Python environment, use the "edm shell" command. For example to activate the python-class environment, type: 
+edm shell -e python-class
+See "Python settings reference" .
+ 
+Option 4 - Change nothing
+If you don't make any of the above changes, you will continue to see the error message whenever a new Terminal window opens. This is not a problem, provided that you:
+
+Whenever you want to activate Python in a VS Code terminal (but not in the "Python" terminal!), activate it manually with the "edm shell" command, as described in Option 3.
+But! -- follow the advice above in "Prerequisites" about reserving the VS Code "Python" terminal instance only for automatic use by the Python "Run" button. In particular, do not use the "edm shell" command in the "Python" terminal (unlike in other Terminals.) 
+ 
+
+Please do not enter support requests in article comments
+Please use article comments for suggestions to improve the article. For individual support requests, please follow these guidelines.
+
+Was this article helpful?   1 out of 1 found this helpful	Facebook Twitter LinkedIn
+Have more questions? Submit a request
+Comments
+Avatar	
+Kayhankh73October 26, 2021 16:00
+On windows it is currently "terminal select default profile"
+Thank you, it was very useful
+
+Comment actions
+Avatar	
+Jonathan MarchOctober 26, 2021 18:55
+Thanks for the feedback, Kayhankh73! -- instructions updated.
+
+Comment actions 
+Related articles
+Using the Enthought Deployment Manager (EDM) with the Visual Studio Code (VS Code) IDE
+Jupyter / IPython: After editing a module, changes are not effective without kernel restart
+EDM: "ERROR: The environment hasn't been activated correctly"
+Specifying which Python environment to use at the command prompt
+Using Enthought Python / EDM with VS Code on a Mac
+ Powered by Zendesk
