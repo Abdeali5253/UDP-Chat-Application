@@ -14,6 +14,7 @@ class ChatClient:
         self.username = username  # Store username
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Initialize socket
         self.connected = False  # Initialize connected to False
+        self.closed = False # Initialize closed to False
 
         #file transfer variables
         self.file_bytes = b'' # Bytes of file
@@ -22,48 +23,54 @@ class ChatClient:
         # Create the main window and widgets
         self.root = tk.Tk() # tinker for gui
         self.root.title(self.username) # Set title to username
-        
+        self.root.configure(bg='#f0f0f0')  # Set the background color of the window
+
+        # Fonts
+        listbox_font = ('Arial', 12)
+        entry_font = ('Arial', 14)
+
         #taking port input
-        self.port_frame = tk.Frame(self.root)
-        self.port_label = tk.Label(self.port_frame, text="Enter Port Number:")
+        self.port_frame = tk.Frame(self.root, bg='#f0f0f0')
+        self.port_label = tk.Label(self.port_frame, text="Enter Port Number:", bg='#f0f0f0')
         self.port_label.pack(side=tk.LEFT)
         self.port_entry = tk.Entry(self.port_frame, width=10)
         self.port_entry.pack(side=tk.LEFT)
-        self.connect_button = tk.Button(self.port_frame, text='Connect', command=self.connect_to_server)
+        self.connect_button = tk.Button(self.port_frame, text='Connect', command=self.connect_to_server, bg='#4a7feb', fg='white', activebackground='#4a7feb', activeforeground='white')
         self.connect_button.pack(side=tk.LEFT, padx=5 , pady=5)
-        self.change_profile_button = tk.Button(self.port_frame, text='Change Profile', command=lambda: self.openform())
+        self.change_profile_button = tk.Button(self.port_frame, text='Change Profile', command=lambda: self.openform(), bg='#4a7feb', fg='white', activebackground='#4a7feb', activeforeground='white')
         self.change_profile_button.pack(side=tk.LEFT, padx=5 , pady=5)
-        self.port_frame.pack()
+        self.port_frame.pack(pady=10)
 
         #box for msg display
-        self.message_frame = tk.Frame(self.root)
+        self.message_frame = tk.Frame(self.root, bg='#f0f0f0')
         self.scrollbar = tk.Scrollbar(self.message_frame, orient=tk.VERTICAL)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.scrollbar_x = tk.Scrollbar(self.message_frame, orient=tk.HORIZONTAL)
         self.scrollbar_x.pack(side=tk.BOTTOM, fill=tk.X)
-        self.message_listbox = tk.Listbox(self.message_frame, height=15, width=50, yscrollcommand=self.scrollbar.set, xscrollcommand=self.scrollbar_x.set)
+        self.message_listbox = tk.Listbox(self.message_frame, height=15, width=50, yscrollcommand=self.scrollbar.set, xscrollcommand=self.scrollbar_x.set, font=listbox_font)
         self.message_listbox.pack(side=tk.LEFT, fill=tk.BOTH)
         self.scrollbar.config(command=self.message_listbox.yview)
         self.scrollbar_x.config(command=self.message_listbox.xview)
-        self.message_frame.pack()
+        self.message_frame.pack(pady=10)
 
         #message sending frame
-        self.message_entry = tk.Entry(self.root, width=50)
+        self.message_entry = tk.Entry(self.root, width=50, font=entry_font)
         self.message_entry.pack(pady=5)
         self.message_entry.focus_set()
 
         #buttons
-        self.button_frame = tk.Frame(self.root)
-        self.send_button = tk.Button(self.button_frame, text='Send', command=self.send_message, state=tk.DISABLED)  # Disable send button by default
+        self.button_frame = tk.Frame(self.root, bg='#f0f0f0')
+        self.send_button = tk.Button(self.button_frame, text='Send', command=self.send_message, state=tk.DISABLED, bg='#4a7feb', fg='white', activebackground='#4a7feb', activeforeground='white')  # Disable send button by default
         self.send_button.pack(side=tk.LEFT , pady=10)
+
+        self.send_file_button = tk.Button(self.button_frame, text='Send File', command=self.send_file, state=tk.DISABLED, bg='#4a7feb', fg='white', activebackground='#4a7feb', activeforeground='white')
+        self.send_file_button.pack(side=tk.LEFT, padx=10 , pady=10)
+
+        self.emoji_button = tk.Button(self.button_frame, text='😀', command=self.show_emoji_menu, state=tk.DISABLED, bg='#4a7feb', fg='white', activebackground='#4a7feb', activeforeground='white')
+        self.emoji_button.pack(side=tk.LEFT, padx=10 , pady=10)
+
         self.button_frame.pack()
         self.root.bind('<Return>', lambda event: self.send_message())
-        self.send_file_button = tk.Button(self.button_frame, text='Send File', command=self.send_file, state=tk.DISABLED)
-        self.send_file_button.pack(side=tk.LEFT, padx=10 , pady=10)
-        self.button_frame.pack()
-        self.emoji_button = tk.Button(self.root, text='😀', command=self.show_emoji_menu)
-        self.emoji_button.pack(side=tk.LEFT, padx=10 , pady=10)
-        self.button_frame.pack()
 
         #closing the window
         self.root.protocol('WM_DELETE_WINDOW', self.quit)
@@ -111,6 +118,7 @@ class ChatClient:
             self.connected = True
             self.send_button.config(state=tk.NORMAL)
             self.send_file_button.config(state=tk.NORMAL)
+            self.emoji_button.config(state=tk.NORMAL)
             self.connect_button.config(state=tk.DISABLED)
             self.root.after(100, self.receive_messages)
         except:
@@ -137,6 +145,8 @@ class ChatClient:
             pass
 
     def receive_messages(self):
+        if self.closed:
+            return
         try:
             packet, address = self.socket.recvfrom(constants.PACKET_SIZE)
             if packet.startswith(b'file_size:'):
@@ -227,6 +237,7 @@ class ChatClient:
             self.socket.sendto(message_with_username.encode(), (self.host, self.port))
         except:
             pass
+        self.closed = True
         self.socket.close()
         self.root.destroy()
 

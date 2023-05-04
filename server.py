@@ -1,6 +1,8 @@
 import socket
 import threading
 import tkinter as tk
+from tkinter import ttk
+
 import os
 import constants
 import traceback
@@ -18,23 +20,30 @@ class ChatServer:
         # Create the main window and widgets
         self.root = tk.Tk()  # tinker for gui
         self.root.title('Chat Server')
+        self.root.geometry('250x250')
+
+        # Style
+        style = ttk.Style()
+        style.configure('TFrame', background='#E1E1E1')
+        style.configure('TLabel', background='#E1E1E1')
+        style.configure('TButton', background='#E1E1E1')
 
         # Port input
-        self.port_entry_frame = tk.Frame(self.root)
-        self.port_entry_label = tk.Label(
+        self.port_entry_frame = ttk.Frame(self.root)
+        self.port_entry_label = ttk.Label(
             self.port_entry_frame, text='Enter port number:')
         self.port_entry_label.pack(side=tk.LEFT)
-        self.port_entry = tk.Entry(self.port_entry_frame, width=10)
+        self.port_entry = ttk.Entry(self.port_entry_frame, width=10)
         self.port_entry.pack(side=tk.LEFT, padx=5)
-        self.listen_button = tk.Button(
+        self.listen_button = ttk.Button(
             self.port_entry_frame, text='Listen', command=self.start_server)
         self.listen_button.pack(side=tk.LEFT)
         self.root.bind('<Return>', lambda event: self.start_server())
         self.port_entry_frame.pack(pady=5)
 
         # initializing box
-        self.message_frame = tk.Frame(self.root)
-        self.scrollbar = tk.Scrollbar(self.message_frame)
+        self.message_frame = ttk.Frame(self.root)
+        self.scrollbar = ttk.Scrollbar(self.message_frame)
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.message_listbox = tk.Listbox(
             self.message_frame, height=15, width=50, yscrollcommand=self.scrollbar.set)
@@ -57,7 +66,11 @@ class ChatServer:
     def receive_messages(self):
         try:
             while True:
-                data, client_address = self.server_socket.recvfrom(constants.PACKET_SIZE)
+                try:
+                    data, client_address = self.server_socket.recvfrom(constants.PACKET_SIZE)
+                except ConnectionResetError:
+                    continue
+
                 if data:
                     username, message_text = data.decode().split(':', 1)
                     self.clients[client_address] = username
@@ -152,11 +165,12 @@ class ChatServer:
 
     # Stopping the server and disconnecting all the clients
     def stop_server(self):
-        # Send a message to all clients indicating that the server is shutting down
+    # Send a message to all clients indicating that the server is shutting down
         for client_address in self.clients:
             self.server_socket.sendto('Server is shutting down'.encode(), client_address)
         
-        self.server_socket.close()
+        if hasattr(self, 'server_socket'):  # Add this line
+            self.server_socket.close()
         self.root.destroy()
 
     # close the server socket
