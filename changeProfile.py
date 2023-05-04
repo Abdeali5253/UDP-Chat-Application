@@ -48,19 +48,27 @@ class ChangeForm:
         if len(password) < 8:
             messagebox.showerror('Error', 'Password must be at least 8 characters long')
             return
-
+        
+        # Check if new username or password is the same as old one
+        if username == self.old_username:
+            messagebox.showerror('Error', 'New username cannot be the same as the old one')
+            return
+        
         with open('users.txt', 'r') as f:
             lines = f.readlines()
 
         with open('users.txt', 'w') as f:
             for line in lines:
                 if line.strip().startswith(self.old_username + ':'):
-                    # Rewrite new username to old username
+                    if line.strip() == '{}:{}'.format(self.old_username, password):
+                        messagebox.showerror('Error', 'New password cannot be the same as the old one')
+                        return
+                    # Rewrite new username and password
                     f.write('{}:{}\n'.format(username, password))
                 else:
                     f.write(line)
 
-        messagebox.showinfo('Success', 'Change successful! , Please login again')
+        messagebox.showinfo('Success', 'Change successful! Please login again')
         self.root.destroy()
         Signup_login()
 

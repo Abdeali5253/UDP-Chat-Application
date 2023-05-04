@@ -6,22 +6,22 @@ import traceback
 import os
 import constants
 
-
 class ChatClient:
     # making the window
     def __init__(self, username):
         self.host = '127.0.0.1'
         self.port = None  # Initialize port to None
         self.username = username  # Store username
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.connected = False
-        
-        self.file_bytes = b''
-        self.file_size = 0
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Initialize socket
+        self.connected = False  # Initialize connected to False
+
+        #file transfer variables
+        self.file_bytes = b'' # Bytes of file
+        self.file_size = 0 # Size of file
 
         # Create the main window and widgets
-        self.root = tk.Tk()
-        self.root.title(self.username)
+        self.root = tk.Tk() # tinker for gui
+        self.root.title(self.username) # Set title to username
         
         #taking port input
         self.port_frame = tk.Frame(self.root)
@@ -30,9 +30,9 @@ class ChatClient:
         self.port_entry = tk.Entry(self.port_frame, width=10)
         self.port_entry.pack(side=tk.LEFT)
         self.connect_button = tk.Button(self.port_frame, text='Connect', command=self.connect_to_server)
-        self.connect_button.pack(side=tk.LEFT, padx=5)
+        self.connect_button.pack(side=tk.LEFT, padx=5 , pady=5)
         self.change_profile_button = tk.Button(self.port_frame, text='Change Profile', command=lambda: self.openform())
-        self.change_profile_button.pack(side=tk.LEFT, padx=10)
+        self.change_profile_button.pack(side=tk.LEFT, padx=5 , pady=5)
         self.port_frame.pack()
 
         #box for msg display
@@ -50,20 +50,40 @@ class ChatClient:
         #message sending frame
         self.message_entry = tk.Entry(self.root, width=50)
         self.message_entry.pack(pady=5)
+        self.message_entry.focus_set()
 
         #buttons
         self.button_frame = tk.Frame(self.root)
         self.send_button = tk.Button(self.button_frame, text='Send', command=self.send_message, state=tk.DISABLED)  # Disable send button by default
-        self.send_button.pack(side=tk.LEFT)
+        self.send_button.pack(side=tk.LEFT , pady=10)
         self.button_frame.pack()
         self.root.bind('<Return>', lambda event: self.send_message())
         self.send_file_button = tk.Button(self.button_frame, text='Send File', command=self.send_file, state=tk.DISABLED)
-        self.send_file_button.pack(side=tk.LEFT, padx=10)
+        self.send_file_button.pack(side=tk.LEFT, padx=10 , pady=10)
+        self.button_frame.pack()
+        self.emoji_button = tk.Button(self.root, text='😀', command=self.show_emoji_menu)
+        self.emoji_button.pack(side=tk.LEFT, padx=10 , pady=10)
         self.button_frame.pack()
 
+        #closing the window
         self.root.protocol('WM_DELETE_WINDOW', self.quit)
         self.root.after(100, self.connect_to_server)
         self.root.mainloop()
+
+    def show_emoji_menu(self):
+        # Create the menu
+        self.emoji_menu = tk.Menu(self.root, tearoff=0)
+
+        # Add each emoji to the menu
+        for emoji in constants.emoji_list:
+            self.emoji_menu.add_command(label=emoji, command=lambda e=emoji: self.add_emoji_to_message(e))
+
+        # Display the menu at the current mouse location
+        self.emoji_menu.post(self.root.winfo_pointerx(), self.root.winfo_pointery())
+
+    def add_emoji_to_message(self, emoji):
+        # Add the emoji to the message entry
+        self.message_entry.insert(tk.END, emoji)
 
     # opening the change profile window
     def openform(self):
@@ -91,71 +111,10 @@ class ChatClient:
             self.connected = True
             self.send_button.config(state=tk.NORMAL)
             self.send_file_button.config(state=tk.NORMAL)
+            self.connect_button.config(state=tk.DISABLED)
             self.root.after(100, self.receive_messages)
         except:
             self.message_listbox.insert(tk.END, 'Unable to connect to server') # if connection not build
-    
-    def receive_messages(self):
-        try:
-            packet, address = self.socket.recvfrom(constants.PACKET_SIZE)
-            message = packet.decode()
-            
-
-            if message.startswith('file_size:'):
-                file_info = message.split(':')
-                
-                self.file_size = int(file_info[1])
-                self.file_name = file_info[2]
-                self.receive_file(self.file_size, self.file_name)
-                # self.file_bytes = b''
-                # timeout = 0
-                # while len(self.file_bytes) < self.file_size and timeout < 1000000:
-                #     timeout +=1
-                #     try:
-                #         packet = self.socket.recvfrom(constants.PACKET_SIZE)[0]
-                #         self.file_bytes += packet
-                #         
-                #     except socket.error as e:
-                #         pass
-                # # Save the file to disk
-                # with open(self.file_name, 'wb') as f:
-                #     f.write(self.file_bytes)
-                #     
-
-            else:
-                self.message_listbox.insert(tk.END, message)
-        except socket.error as e:
-            if e.errno != 10035 and e.errno != 11: # Ignore "Resource temporarily unavailable" and "Resource temporarily unavailable" errors
-                self.message_listbox.insert(tk.END, 'Error receiving message: {}'.format(e))
-        except UnicodeDecodeError:
-            self.message_listbox.insert(tk.END, 'Error decoding message')
-        except:
-            traceback.print_exc()
-            self.message_listbox.insert(tk.END, 'Error receiving message')
-        self.root.after(100, self.receive_messages)
-
-    # Define the send_file method
-    def send_file(self):
-        filename = filedialog.askopenfilename()
-        file_size = os.path.getsize(filename)
-        
-
-        username = self.username
-        message_with_username = f'{username}:file_size:{file_size}:{filename}'
-        self.socket.sendto(message_with_username.encode(), (self.host, self.port))
-
-        with open(filename, 'rb') as f:
-            filedata = b''
-            while True:
-                data = f.read(constants.PACKET_SIZE)
-                filedata += data
-                if len(data) == 0:
-                    self.socket.sendto(b'', (self.host, self.port))
-                    break
-                self.socket.sendto(data, (self.host, self.port))
-
-        # Send an empty packet to signal the end of the file transfer
-        # self.socket.sendto(b'', (self.host, self.port))
 
     # sending the message to the server and other clients
     def send_message(self):
@@ -177,22 +136,72 @@ class ChatClient:
         else:
             pass
 
-    # Close socket and destroy tkinter window
-    def quit(self):
+    def receive_messages(self):
         try:
-            username = self.username
-            message_with_username = f'{username}:{f"has left the chat"}'
-            self.socket.sendto(message_with_username.encode(), (self.host, self.port))
+            packet, address = self.socket.recvfrom(constants.PACKET_SIZE)
+            if packet.startswith(b'file_size:'):
+                message = packet.decode()
+                file_info = message.split(':')
+                
+                self.file_size = int(file_info[1])
+                self.file_name = file_info[2]
+                self.receive_file(self.file_size, self.file_name)
+            else:
+                message = packet.decode('utf-8')
+                if message == 'Server is shutting down':
+                    self.message_listbox.insert(tk.END, message)
+                    new = 'Enter port to again connect to different server'
+                    self.message_listbox.insert(tk.END, new)
+                    self.send_button.config(state=tk.DISABLED)
+                    self.send_file_button.config(state=tk.DISABLED)
+                    self.connect_button.config(state=tk.NORMAL)
+                    self.connected = False
+
+                else:
+                    self.message_listbox.insert(tk.END, message)
+        except socket.error as e:
+            if e.errno != 10035 and e.errno != 11: # Ignore "Resource temporarily unavailable" and "Resource temporarily unavailable" errors
+                self.message_listbox.insert(tk.END, 'Error receiving message: {}'.format(e))
+        except UnicodeDecodeError:
+            self.message_listbox.insert(tk.END, 'Error decoding message')
         except:
-            pass
-        self.socket.close()
-        self.root.destroy()
+            traceback.print_exc()
+            self.message_listbox.insert(tk.END, 'Error receiving message')
+        self.root.after(100, self.receive_messages)
+
+
+    # Define the send_file method
+    def send_file(self):
+        filename = filedialog.askopenfilename()
+        file_size = os.path.getsize(filename)
+
+        username = self.username
+        # Send the file size and name to the server
+        message_with_username = f'{username}:file_size:{file_size}:{filename}'
+        self.socket.sendto(message_with_username.encode(), (self.host, self.port))
+
+        #inserting the message in the listbox
+        message_with_username = f'You : Sending File{filename}'
+        self.message_listbox.insert(tk.END, message_with_username)
+        
+        # Send the file data to the server
+        with open(filename, 'rb') as f:
+            filedata = b''
+            while True:
+                data = f.read(constants.PACKET_SIZE)
+                filedata += data
+                if len(data) == 0:
+                    self.socket.sendto(b'', (self.host, self.port))
+                    break
+                self.socket.sendto(data, (self.host, self.port))
+
+        # Send an empty packet to signal the end of the file transfer
+        self.socket.sendto(b'', (self.host, self.port))
 
     def receive_file(self, file_size, file_name):
-        
-        
         file_data = b''
-        file_name = f'media/{self.username}_{file_name}'
+        file_name = f'media\\{self.username}_{file_name}'
+        self.message_listbox.insert(tk.END, f'Receiving file {file_name}')
 
         timeout = 0
         with open(file_name, 'wb') as f:
@@ -208,4 +217,18 @@ class ChatClient:
             f.close()
 
         file_size = os.path.getsize(file_name)
+
+
+    # Close socket and destroy tkinter window
+    def quit(self):
+        try:
+            username = self.username
+            message_with_username = f'{username}:{f"has left the chat"}'
+            self.socket.sendto(message_with_username.encode(), (self.host, self.port))
+        except:
+            pass
+        self.socket.close()
+        self.root.destroy()
+
+    
         
